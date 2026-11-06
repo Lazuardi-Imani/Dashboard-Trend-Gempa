@@ -1,0 +1,3874 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Trend Jembatan Terimbas Gempa</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--ink:#172033;--muted:#657086;--line:#dce2eb;--panel:#fff;--bg:#f4f6fa;--accent:#1e5aa8;--red:#c94b46;--orange:#e38a2f;--green:#27805b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:#12243b;color:#fff;padding:24px max(18px,calc((100% - 1400px)/2))}
+header h1{margin:0 0 5px;font-size:clamp(22px,3vw,32px)}header p{margin:0;color:#d2dbea}
+main{max-width:1400px;margin:auto;padding:18px}
+.panel,.metric{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.toolbar{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.field{display:flex;flex-direction:column;gap:5px;min-width:180px}.field label{font-size:12px;font-weight:700;color:var(--muted)}
+input,select,button{font:inherit;border:1px solid #cbd3df;border-radius:8px;padding:9px 11px;background:white;color:var(--ink)}
+button{background:var(--accent);color:white;border-color:var(--accent);font-weight:650;cursor:pointer}button:disabled{opacity:.55;cursor:wait}
+.hint{color:var(--muted);font-size:12px}.status{margin-top:12px;padding:10px 12px;background:#eef3fa;border-radius:9px;color:#31445f;white-space:pre-wrap}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}
+.metric .label{color:var(--muted);font-size:12px}.metric .value{font-size:28px;font-weight:750;letter-spacing:-.5px;margin:5px 0}.metric .sub{color:var(--muted);font-size:11px}
+.charts {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.charts > .panel {
+  min-width: 0;
+  max-width: 100%;
+}
+#map{height:520px;border-radius:10px;border:1px solid var(--line)}.maplegend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+.tablewrap{overflow:auto;max-height:420px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}th{position:sticky;top:0;background:#f7f9fc;z-index:1}
+.footer{color:var(--muted);font-size:12px;margin:16px 0 6px}.pill{display:inline-block;border-radius:999px;padding:3px 8px;background:#e8f4ed;color:#206343;font-size:11px}
+@media(max-width:900px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.charts{grid-template-columns:1fr}}
+@media(max-width:520px){main{padding:10px}.metrics{gap:8px}.metric{padding:12px}.metric .value{font-size:23px}.panel{padding:12px}#map{height:420px}}
+.tablewrap {
+  overflow: auto;
+  max-height: 480px;
+}
+
+#bridgeTable {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+
+#bridgeTable th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #f7f9fc;
+  text-align: center;
+  vertical-align: middle;
+}
+
+#bridgeTable thead tr:nth-child(2) th {
+  top: 38px;
+  z-index: 2;
+}
+
+#bridgeTable .condition-heading {
+  background: #eaf0f8;
+  text-align: center;
+}
+
+.sort-btn {
+  padding: 5px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sort-btn:hover {
+  color: var(--accent);
+  background: #e8eef7;
+}
+
+.chartbox {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.chart-scroll {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  box-sizing: border-box;
+  padding-bottom: 10px;
+}
+
+.chart-canvas-wrap {
+  width: 1100px;
+  min-width: 1100px;
+  height: 500px;
+  position: relative;
+}
+
+.chart-canvas-wrap canvas {
+  display: block;
+}
+
+main,
+.main-content,
+.dashboard-content {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.chart-card,
+.chartbox {
+  position: relative;
+  width: 100%;
+  height: 340px;
+  min-height: 340px;
+}
+.chartbox-scroll {
+  height: auto;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.chartbox-scroll .chart-scroll {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 12px;
+  scrollbar-width: auto;
+  scrollbar-color: #aab5c5 #edf0f5;
+}
+
+.chartbox-scroll .chart-canvas-wrap {
+  position: relative;
+  width: 1100px;
+  min-width: 1100px;
+  max-width: none;
+}
+
+.chartbox-scroll canvas {
+  display: block;
+}
+
+.chartbox-scroll {
+  height: 300px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.chartbox-scroll .chart-scroll {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: auto;
+  padding-bottom: 12px;
+  box-sizing: border-box;
+}
+
+/* Ringkasan kondisi jembatan terpapar gempa */
+.condition-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0 22px;
+}
+
+.condition-summary-card {
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  min-width: 0;
+}
+
+.condition-summary-label {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.condition-summary-value {
+  display: block;
+  color: #172554;
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.condition-summary-detail {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.condition-summary-card.priority {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.condition-summary-card.priority .condition-summary-value {
+  color: #dc2626;
+}
+
+@media (max-width: 700px) {
+  .condition-summary {
+    grid-template-columns: 1fr;
+  }
+}
+/* Samakan tinggi kedua kartu grafik */
+.charts {
+  align-items: stretch;
+}
+
+.charts > .panel {
+  min-width: 0;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Grafik kondisi tetap menggunakan area yang tersedia */
+.charts > .panel .chartbox {
+  flex: 1;
+  min-height: 340px;
+  height: auto;
+}
+
+/* Grafik provinsi memiliki area scroll sendiri */
+.charts > .panel .chartbox-scroll {
+  flex: 1;
+  min-height: 340px;
+  height: auto;
+  overflow: hidden;
+}
+
+.charts > .panel .chartbox-scroll .chart-scroll {
+  width: 100%;
+  height: 100%;
+  min-height: 340px;
+  overflow-x: auto;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.charts > .panel .chartbox-scroll .chart-canvas-wrap {
+  width: 1100px;
+  min-width: 1100px;
+  height: 340px;
+  min-height: 340px;
+  position: relative;
+}
+
+/* Efek hover pada tabel Detail Jembatan Terimbas */
+#resultsBody tr {
+  transition: background-color 0.2s ease;
+}
+
+#resultsBody tr:hover td {
+  background-color: #eaf3ff;
+}
+
+/* Sorot teks secara halus saat baris diarahkan */
+#resultsBody tr:hover td {
+  cursor: default;
+}
+
+.multi-select {
+  position: relative;
+  width: 100%;
+}
+
+.multi-select-trigger {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  background: #fff;
+  color: inherit;
+  border: 1px solid #d9dfe7;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.multi-select-trigger:hover {
+  border-color: #7b9bc2;
+}
+
+.multi-select-options {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 6px;
+  background: #fff;
+  color: #333;
+  border: 1px solid #d9dfe7;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
+}
+
+.multi-select-options[hidden] {
+  display: none;
+}
+
+.multi-select-options label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 400;
+}
+
+.multi-select-options label:hover {
+  background: #f1f5fa;
+}
+
+.multi-select-options input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* Tombol filter pada judul kolom tabel */
+.sort-btn {
+  white-space: nowrap;
+}
+
+.column-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  margin-left: 3px;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.column-filter-btn:hover {
+  background: #e8eef7;
+  color: #2563eb;
+}
+
+.column-filter-btn.active {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.column-filter-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Menu filter yang muncul saat ikon diklik */
+.column-filter-menu {
+  position: fixed;
+  z-index: 10000;
+  width: 260px;
+  max-width: calc(100vw - 24px);
+  max-height: min(420px, 75vh);
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid #dbe2ec;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.18);
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.column-filter-menu[hidden] {
+  display: none !important;
+}
+
+.column-filter-title {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.column-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.column-filter-field label {
+  font-size: 12px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.column-filter-menu input,
+.column-filter-menu select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #1e293b;
+  font: inherit;
+}
+
+.column-filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.column-filter-actions button {
+  padding: 7px 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  cursor: pointer;
+}
+
+.column-filter-actions .apply-filter-btn {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}
+
+.column-filter-actions button:hover {
+  opacity: 0.85;
+}
+
+.metric-clickable {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(53, 105, 184, 0.12);
+}
+
+.metric-clickable:focus-visible {
+  outline: 2px solid #3569B8;
+  outline-offset: 3px;
+}
+
+/* Modal detail kejadian gempa */
+.quake-modal-overlay[hidden] {
+  display: none !important;
+}
+
+.quake-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(20, 30, 45, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+.quake-modal {
+  width: min(900px, 100%);
+  max-height: 85vh;
+  overflow: auto;
+  background: #fff;
+  color: #243247;
+  border: 1px solid #e5eaf1;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+}
+
+.quake-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px;
+  border-bottom: 1px solid #e8edf3;
+}
+
+.quake-modal-eyebrow {
+  margin-bottom: 6px;
+  color: #3569b8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.quake-modal-header h2 {
+  margin: 0;
+  font-size: 21px;
+}
+
+.quake-modal-header p {
+  margin: 8px 0 0;
+  color: #718096;
+  font-size: 13px;
+}
+
+.quake-modal-close {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e5eaf1;
+  border-radius: 10px;
+  background: #fff;
+  color: #526176;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.quake-modal-close:hover {
+  background: #f3f6fa;
+}
+
+.quake-modal-body {
+  padding: 24px;
+}
+
+@media (max-width: 600px) {
+  .quake-modal-overlay {
+    padding: 12px;
+  }
+
+  .quake-modal {
+    max-height: 90vh;
+  }
+
+  .quake-modal-header,
+  .quake-modal-body {
+    padding: 18px;
+  }
+
+  .quake-modal-header h2 {
+    font-size: 18px;
+  }
+}
+
+.quake-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: #718096;
+  background: #f7f9fc;
+  border-radius: 10px;
+}
+
+.quake-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.quake-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.quake-table th {
+  padding: 13px 14px;
+  background: #f3f6fb;
+  color: #526176;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.quake-table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid #e8edf3;
+  color: #344256;
+  vertical-align: top;
+}
+
+.quake-table tbody tr:hover {
+  background: #f8faff;
+}
+
+.quake-table th:first-child,
+.quake-table td:first-child {
+  white-space: nowrap;
+}
+
+.quake-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.quake-sort-btn:hover {
+  color: #3569b8;
+}
+
+.quake-sort-btn:focus-visible {
+  outline: 2px solid #3569b8;
+  outline-offset: 4px;
+  border-radius: 3px;
+}
+
+.sort-indicator {
+  color: #8492a6;
+  font-size: 14px;
+}
+
+</style>
+</head>
+<body>
+<header><h1>Dashboard Trend Jembatan Terimbas Gempa</h1><p>Analisis spasial jembatan terhadap poligon radius/buffer gempa • Data API Bina Marga</p></header>
+<main>
+
+<section class="panel">
+  <div class="toolbar">
+    <div class="field" style="flex:1;min-width:250px">
+      <label>Status sumber data</label>
+      <div class="hint">
+        GeoJSON: output/Indonesia_2026_Q.geojson
+      </div>
+      <div class="hint">
+        Gempa dan buffer: ArcGIS REST API Bina Marga
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="yearFilter">Filter tahun</label>
+      <select id="yearFilter">
+        <option value="all">Semua tahun</option>
+      </select>
+    </div>
+
+    
+<div class="field">
+  <label for="monthFilter">Filter bulan</label>
+  <div class="multi-select" id="monthMultiSelect">
+    <button type="button"
+            class="multi-select-trigger"
+            id="monthFilter"
+            aria-expanded="false">
+      Semua bulan
+      <span>▾</span>
+    </button>
+
+    <div class="multi-select-options" id="monthOptions" hidden>
+          <label>
+            <input type="checkbox" value="all" checked>
+            Semua bulan
+          </label>
+          <label><input type="checkbox" value="1"> Januari</label>
+          <label><input type="checkbox" value="2"> Februari</label>
+          <label><input type="checkbox" value="3"> Maret</label>
+          <label><input type="checkbox" value="4"> April</label>
+          <label><input type="checkbox" value="5"> Mei</label>
+          <label><input type="checkbox" value="6"> Juni</label>
+          <label><input type="checkbox" value="7"> Juli</label>
+          <label><input type="checkbox" value="8"> Agustus</label>
+          <label><input type="checkbox" value="9"> September</label>
+          <label><input type="checkbox" value="10"> Oktober</label>
+          <label><input type="checkbox" value="11"> November</label>
+          <label><input type="checkbox" value="12"> Desember</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="mmiFilter">Klasifikasi MMI</label>
+      <div class="multi-select" id="mmiMultiSelect">
+        <button type="button"
+                class="multi-select-trigger"
+                id="mmiFilter"
+                aria-expanded="false">
+          Semua klasifikasi
+          <span>▾</span>
+        </button>
+
+        <div class="multi-select-options" id="mmiOptions" hidden>
+          <label>
+            <input type="checkbox" value="all" checked>
+            Semua klasifikasi
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <button id="runBtn">Muat API & analisis</button>
+  </div>
+
+  <div id="status" class="status">
+    Memuat data jembatan otomatis...
+  </div>
+</section>
+
+<section class="metrics">
+  
+  <div class="metric metric-clickable" id="quakeMetricCard" role="button" tabindex="0" aria-label="Lihat detail kejadian gempa">
+    <div class="label">Kejadian Gempa</div>
+    <div class="value" id="mUnique">—</div>
+    <div class="sub">Berdasarkan filter tahun dan bulan · Klik untuk detail ↗</div>
+  </div>
+  
+  <div class="metric">
+    <div class="label">Total Unit Jembatan Terimbas</div>
+    <div class="value" id="mExposures">—</div>
+    <div class="sub">Jumlah jembatan unik berdasarkan filter aktif</div>
+  </div>
+
+  <div class="metric"><div class="label">Kejadian gempa</div><div class="value" id="mQuakes">—</div><div class="sub">ID gempa unik yang tersedia di API titik</div></div>
+  
+  <div class="metric metric-clickable"
+      id="priorityProvinceCard"
+      role="button"
+      tabindex="0"
+      aria-label="Lihat peringkat provinsi dengan frekuensi jembatan NK 3 sampai 5 tertinggi">
+
+    <div class="label">Provinsi dengan NK Tidak Mantap Tertinggi yang Terimbas Gempa</div>
+    <div class="value" id="mPeak">—</div>
+    <div class="sub" id="mPeakSub">
+      Klik untuk melihat peringkat provinsi ↗
+    </div>
+
+  </div>
+</section>
+
+<!-- Modal detail kejadian gempa -->
+<div class="quake-modal-overlay" id="quakeModal" hidden>
+  <div
+    class="quake-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="quakeModalTitle"
+  >
+    <div class="quake-modal-header">
+      <div>
+        <div class="quake-modal-eyebrow">DATA GEMPA</div>
+        <h2 id="quakeModalTitle">Detail Kejadian Gempa</h2>
+        <p id="quakeModalSubtitle">
+          Daftar kejadian sesuai filter yang dipilih.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="quake-modal-close"
+        id="closeQuakeModal"
+        aria-label="Tutup detail kejadian gempa"
+      >&times;</button>
+    </div>
+
+    <div class="quake-modal-body">
+      <div id="quakeModalContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal peringkat provinsi NK 3–5 -->
+
+<!-- Modal peringkat provinsi NK 3–5 -->
+<div class="quake-modal-overlay" id="priorityProvinceModal" hidden>
+  <div
+    class="quake-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="priorityProvinceModalTitle"
+  >
+    <div class="quake-modal-header">
+      <div>
+        <div class="quake-modal-eyebrow">KONDISI JEMBATAN</div>
+
+        <h2 id="priorityProvinceModalTitle">
+          Peringkat Provinsi dengan NK Tidak Mantap
+        </h2>
+
+        <p id="priorityProvinceModalSubtitle">
+          Peringkat berdasarkan jumlah jembatan dengan NK 3, 4, dan 5.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="quake-modal-close"
+        id="closePriorityProvinceModal"
+        aria-label="Tutup peringkat provinsi"
+      >&times;</button>
+    </div>
+
+    <div class="quake-modal-body">
+      <div class="quake-table-wrap">
+        <table class="quake-table">
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Provinsi</th>
+              <th>Jumlah Jembatan Tidak Mantap</th>
+            </tr>
+          </thead>
+
+          <tbody id="priorityProvinceModalContent">
+            <tr>
+              <td colspan="3">Belum ada data.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="charts">
+    <div class="panel">
+    <h2>Jembatan Terimbas per Provinsi dan Frekuensi Gempa</h2>
+    <p class="hint">
+      Setiap provinsi ditampilkan satu kali. Warna batang menunjukkan
+      frekuensi kejadian gempa yang mengimbas jembatan.
+    </p>
+    
+    <div class="chartbox chartbox-scroll">
+      <div class="chart-scroll">
+        <div class="chart-canvas-wrap">
+          <canvas id="yearChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+  <h2>Kondisi Jembatan yang Terimbas Gempa</h2>
+
+  <p class="hint">
+    Distribusi nilai kondisi jembatan yang terimbas gempa
+    berdasarkan filter periode yang dipilih.
+  </p>
+
+  <!-- Ringkasan kondisi jembatan -->
+  <div id="conditionSummary" class="condition-summary"></div>
+
+  <div class="chartbox">
+    <canvas id="mmiChart"></canvas>
+  </div>
+</div>
+</section>
+
+<section class="panel" style="margin-bottom:14px">
+  <h2>Kondisi Jembatan Terimbas per Provinsi</h2>
+
+  <p class="hint">
+    Perbandingan jumlah jembatan unik berdasarkan nilai kondisi
+    NK 0–5 pada setiap provinsi. Warna batang menunjukkan
+    kondisi jembatan dan mengikuti filter periode yang dipilih.
+  </p>
+
+  <div class="chartbox" style="height:600px">
+    <canvas id="conditionProvinceChart"></canvas>
+  </div>
+
+  <p class="hint">
+    Catatan: grafik menunjukkan kondisi jembatan yang terpapar
+    wilayah buffer gempa, bukan bukti bahwa kerusakan disebabkan
+    oleh gempa.
+  </p>
+</section>
+
+<section class="panel" style="margin-bottom:14px">
+  <h2>Peta sebaran</h2>
+  <div class="maplegend"><span><i class="dot" style="background:#c94b46"></i>Titik gempa</span><span><i class="dot" style="background:#27805b"></i>Jembatan terimbas</span><span><i class="dot" style="background:#e38a2f"></i>Jembatan tidak terimbas</span><span><i class="dot" style="background:#75b9df"></i>Poligon buffer</span></div>
+  <div id="map"></div><p class="hint">Peta menampilkan poligon buffer, titik gempa, serta lokasi jembatan. Analisis paparan memakai irisan titik jembatan dengan poligon buffer.</p>
+</section>
+<section class="panel">
+  <h2>Detail jembatan terimbas</h2>
+  <p class="hint" id="tableInfo">Belum ada hasil analisis.</p>
+
+  <div class="tablewrap">
+  <table id="bridgeTable">
+    <thead>
+      <tr>
+        <th rowspan="2"><button class="sort-btn" data-sort="province">Provinsi ↕</button></th>
+        <th rowspan="2"><button class="sort-btn" data-sort="bridgeNumber">Nomor Jembatan ↕</button></th>
+        <th rowspan="2"><button class="sort-btn" data-sort="bridgeName">Nama Jembatan ↕</button></th>
+        <th rowspan="2"><button class="sort-btn" data-sort="frequency">Frekuensi Gempa ↕</button></th>
+        <th rowspan="2"><button class="sort-btn" data-sort="bridgeLength">Panjang ↕</button></th>
+        <th rowspan="2"><button class="sort-btn" data-sort="bridgeWidth">Lebar ↕</button></th>
+        <th rowspan="2"><button class="sort-btn" data-sort="bridgeStructure">Bangunan Atas ↕</button></th>
+        <th rowspan="2"><button class="sort-btn" data-sort="bridgeYear">Tahun Bangun ↕</button></th>
+        <th colspan="9" class="condition-heading">Nilai Kondisi</th>
+        <th rowspan="2"><button class="sort-btn" data-sort="magnitude">Magnitudo Maks. ↕</button></th>
+        <th rowspan="2"><button class="sort-btn" data-sort="mmi">MMI ↕</button></th>
+      </tr>
+      <tr>
+        <th><button class="sort-btn" data-sort="BA">BA ↕</button></th>
+        <th><button class="sort-btn" data-sort="LNT">LNT ↕</button></th>
+        <th><button class="sort-btn" data-sort="BB">BB ↕</button></th>
+        <th><button class="sort-btn" data-sort="DAS">DAS ↕</button></th>
+        <th><button class="sort-btn" data-sort="OP">OP ↕</button></th>
+        <th><button class="sort-btn" data-sort="UT">UT ↕</button></th>
+        <th><button class="sort-btn" data-sort="GR">GR ↕</button></th>
+        <th><button class="sort-btn" data-sort="LB">LB ↕</button></th>
+        <th><button class="sort-btn" data-sort="JBT">JBT ↕</button></th>
+      </tr>
+    </thead>
+    <tbody id="resultsBody">
+      <tr><td colspan="19">Belum ada data.</td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+<p class="footer">Catatan: “terpapar” berarti titik lokasi jembatan berada di dalam poligon buffer. Ini bukan konfirmasi kerusakan struktural. Analisis memakai data dan atribut yang dikembalikan oleh API saat dashboard dijalankan.</p>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+const API_POINT='https://gisportal.binamarga.pu.go.id/arcgis/rest/services/Hosted/Titik_Gempa/FeatureServer/0/query';
+const API_BUFFER='https://gisportal.binamarga.pu.go.id/arcgis/rest/services/Hosted/Radius_Gempa/FeatureServer/0/query';
+const PAGE_SIZE=2000;
+
+let bridgeData=null, quakeFeatures=[], bufferFeatures=[], exposureRows=[],
+    yearChart=null, mmiChart=null, conditionProvinceChart=null;
+
+const $=id=>document.getElementById(id);
+const fmt=n=>Number(n||0).toLocaleString('id-ID');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const map=L.map('map').setView([-2.5,118],4);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; OpenStreetMap'}).addTo(map);
+const mapLayers=L.layerGroup().addTo(map);
+function status(s){$('status').textContent=s}
+function cleanDate(v){
+  if(v===null||v===undefined||v==='') return null;
+  // ArcGIS date fields may be milliseconds since epoch; GeoJSON/API responses can also be date strings.
+  let d;
+  if(typeof v==='number'||/^\d{10,13}$/.test(String(v))) d=new Date(Number(v));
+  else d=new Date(v);
+  return Number.isNaN(d.getTime())?null:d;
+}
+
+function yearOf(attrs) {
+  const value = attrs?.ed_date;
+
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  // Format tanggal ArcGIS: timestamp dalam milidetik.
+  if (typeof value === 'number' ||
+      /^\d{10,13}$/.test(String(value))) {
+    const date = new Date(Number(value));
+    return Number.isNaN(date.getTime())
+      ? null
+      : date.getUTCFullYear();
+  }
+
+  // Format teks, misalnya: 10/14/26, 12:22 AM.
+  const match = String(value).match(
+    /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})(?:,|$)/
+  );
+
+  if (match) {
+    const yearText = match[3];
+    return yearText.length === 2
+      ? 2000 + Number(yearText)
+      : Number(yearText);
+  }
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? null
+    : date.getUTCFullYear();
+}
+
+function monthOf(attrs) {
+  const value = attrs?.ed_date;
+
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  // Jika ed_date berupa timestamp ArcGIS (milidetik).
+  if (
+    typeof value === 'number' ||
+    /^\d{10,13}$/.test(String(value))
+  ) {
+    const date = new Date(Number(value));
+
+    return Number.isNaN(date.getTime())
+      ? null
+      : date.getUTCMonth() + 1;
+  }
+
+  // Jika ed_date berupa teks, misalnya:
+  // 9/21/26, 9:31 PM
+  // 10/11/26, 5:30 PM
+  const match = String(value).match(
+    /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})(?:,|$)/
+  );
+
+  if (match) {
+    const month = Number(match[1]);
+
+    return month >= 1 && month <= 12
+      ? month
+      : null;
+  }
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? null
+    : date.getUTCMonth() + 1;
+}
+
+function featureId(f){const p=f.properties||{};return String(p.ID_Jbt_26??p.id_jbt_26??p.No_Jbt_26??p.OBJECTID??f.id??'')}
+
+
+async function fetchArcGISAll(url, label) {
+  let all = [];
+  let offset = 0;
+
+  while (true) {
+    const params = new URLSearchParams({
+      where: '1=1',
+      outFields: '*',
+      returnGeometry: 'true',
+      outSR: '4326',
+      f: 'geojson',
+      resultOffset: String(offset),
+      resultRecordCount: String(PAGE_SIZE)
+    });
+
+    const resp = await fetch(
+      url + '?' + params.toString()
+    );
+
+    const body = await resp.text();
+
+    let data;
+    try {
+      data = JSON.parse(body);
+    } catch {
+      throw new Error(
+        `${label}: HTTP ${resp.status}. ` +
+        body.slice(0, 700)
+      );
+    }
+
+    if (!resp.ok || data.error) {
+      throw new Error(
+        `${label}: HTTP ${resp.status}. ` +
+        JSON.stringify(data.error || data).slice(0, 1000)
+      );
+    }
+
+    const features = data.features || [];
+    all.push(...features);
+
+    status(
+      `Mengambil ${label}: ` +
+      all.length.toLocaleString('id-ID') +
+      ' fitur'
+    );
+
+    if (features.length < PAGE_SIZE) break;
+
+    offset += features.length;
+
+    if (offset > 500000) {
+      throw new Error(
+        `Pengambilan ${label} dihentikan: ` +
+        'melewati batas pengaman.'
+      );
+    }
+  }
+
+  return all;
+}
+
+function geomPoint(f){
+  if(!f.geometry) return null;
+  if(f.geometry.type==='Point') return f;
+  // If a future bridge file contains line/polygon geometries, use a point-on-feature for a reasonable location.
+  try{return turf.pointOnFeature(f)}catch(e){return null}
+}
+function getMmi(p){return String(p.mmi??'Tidak diketahui')}
+
+function getMultiSelectValues(optionsId) {
+  const container = $(optionsId);
+
+  const selected = [
+    ...container.querySelectorAll(
+      'input[type="checkbox"]:checked'
+    )
+  ].map(input => input.value);
+
+  if (!selected.length || selected.includes('all')) {
+    return [];
+  }
+
+  return selected;
+}
+
+function updateMultiSelectLabel(optionsId, triggerId, allLabel) {
+  const selected = getMultiSelectValues(optionsId);
+  const trigger = $(triggerId);
+
+  let label = allLabel;
+
+  if (selected.length === 1) {
+    const checkbox = $(`${optionsId}`)
+      .querySelector(`input[value="${CSS.escape(selected[0])}"]`);
+
+    label = checkbox?.parentElement.textContent.trim() || selected[0];
+  } else if (selected.length > 1) {
+    label = `${selected.length} pilihan dipilih`;
+  }
+
+  trigger.innerHTML = `
+    <span>${esc(label)}</span>
+    <span>▾</span>
+  `;
+}
+
+let filterRenderTimer = null;
+
+function scheduleFilterRender() {
+  clearTimeout(filterRenderTimer);
+
+  filterRenderTimer = setTimeout(() => {
+    renderCharts();
+    renderTableAndMap();
+  }, 180);
+}
+
+function setupMultiSelect(optionsId, triggerId, allLabel) {
+  const options = $(optionsId);
+  const trigger = $(triggerId);
+
+  trigger.addEventListener('click', () => {
+    const isOpen = !options.hidden;
+
+    options.hidden = isOpen;
+    trigger.setAttribute('aria-expanded', String(!isOpen));
+  });
+
+  options.addEventListener('change', event => {
+    const input = event.target;
+
+    if (input.type !== 'checkbox') return;
+
+    const allCheckbox = options.querySelector(
+      'input[value="all"]'
+    );
+
+    const checkboxes = [
+      ...options.querySelectorAll(
+        'input[type="checkbox"]:not([value="all"])'
+      )
+    ];
+
+    if (input.value === 'all') {
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      allCheckbox.checked = true;
+    } else {
+      allCheckbox.checked = false;
+
+      if (!checkboxes.some(checkbox => checkbox.checked)) {
+        allCheckbox.checked = true;
+      }
+    }
+
+    updateMultiSelectLabel(
+      optionsId,
+      triggerId,
+      allLabel
+    );
+
+    scheduleFilterRender();
+  });
+
+  updateMultiSelectLabel(
+    optionsId,
+    triggerId,
+    allLabel
+  );
+}
+
+setupMultiSelect(
+  'monthOptions',
+  'monthFilter',
+  'Semua bulan'
+);
+
+setupMultiSelect(
+  'mmiOptions',
+  'mmiFilter',
+  'Semua klasifikasi'
+);
+
+// Tutup dropdown bulan dan MMI jika klik di luar area keduanya.
+document.addEventListener('click', function (event) {
+  const monthContainer = $('monthMultiSelect');
+  const mmiContainer = $('mmiMultiSelect');
+
+  if (
+    monthContainer &&
+    !monthContainer.contains(event.target)
+  ) {
+    $('monthOptions').hidden = true;
+    $('monthFilter').setAttribute('aria-expanded', 'false');
+  }
+
+  if (
+    mmiContainer &&
+    !mmiContainer.contains(event.target)
+  ) {
+    $('mmiOptions').hidden = true;
+    $('mmiFilter').setAttribute('aria-expanded', 'false');
+  }
+});
+
+let priorityProvinceRanking = [];
+
+function renderCharts(){
+  
+  // Grafik horizontal grouped bar chart.
+  // Setiap provinsi hanya ditampilkan satu kali,
+  // dengan beberapa batang berdasarkan frekuensi gempa.
+
+  const selectedYear = $('yearFilter').value;
+  const selectedMonths = getMultiSelectValues('monthOptions');
+  const selectedMmis = getMultiSelectValues('mmiOptions');
+
+  const chartRows = exposureRows.filter(r =>
+  (selectedYear === 'all' || String(r.year) === selectedYear) &&
+  (!selectedMonths.length || selectedMonths.includes(String(r.month))) &&
+  (!selectedMmis.length || selectedMmis.includes(String(r.mmi)))
+);
+
+  const dataKhusus = chartRows.filter(r =>
+    String(
+      r.province ||
+      r.bridgeFeature?.properties?.PROVINSI ||
+      r.bridgeFeature?.properties?.provinsi ||
+      r.bridgeFeature?.properties?.Provinsi ||
+      ''
+    ).trim().toLowerCase() === 'khusus'
+  );
+
+  console.log(
+    'Detail jembatan dengan provinsi Khusus:',
+    dataKhusus.map(r => ({
+      tahun: r.year,
+      bulan: r.month,
+      idJembatan: r.bridgeId,
+      provinsiDariRow: r.province,
+      atributJembatan: r.bridgeFeature?.properties
+    }))
+  );
+
+  // Kelompokkan ID gempa unik untuk setiap jembatan.
+  const bridgeQuakes = new Map();
+
+  chartRows.forEach(r => {
+    const province = String(
+      r.province ||
+      r.bridgeFeature?.properties?.PROVINSI ||
+      r.bridgeFeature?.properties?.provinsi ||
+      r.bridgeFeature?.properties?.Provinsi ||
+      'Provinsi tidak diketahui'
+    ).trim();
+
+    const bridgeId = String(r.bridgeId ?? '');
+    const eqId = String(r.eqId ?? '');
+
+    if (!bridgeId || !eqId) return;
+
+    const key = JSON.stringify([province, bridgeId]);
+
+    if (!bridgeQuakes.has(key)) {
+      bridgeQuakes.set(key, {
+        province,
+        bridgeId,
+        quakes: new Set()
+      });
+    }
+
+    bridgeQuakes.get(key).quakes.add(eqId);
+  });
+
+  // Hitung jumlah jembatan berdasarkan provinsi
+  // dan frekuensi gempa.
+  const provinceFrequency = new Map();
+
+  bridgeQuakes.forEach(bridge => {
+    const frequency = bridge.quakes.size;
+    const province = bridge.province;
+
+    if (!provinceFrequency.has(province)) {
+      provinceFrequency.set(province, new Map());
+    }
+
+    const frequencyMap = provinceFrequency.get(province);
+
+    frequencyMap.set(
+      frequency,
+      (frequencyMap.get(frequency) || 0) + 1
+    );
+  });
+
+  // Nama provinsi hanya satu kali.
+  const provinces = [...provinceFrequency.keys()]
+    .sort((a, b) => a.localeCompare(b, 'id'));
+
+  // Daftar frekuensi yang ditemukan.
+  const frequencies = [
+    ...new Set(
+      [...provinceFrequency.values()]
+        .flatMap(frequencyMap => [...frequencyMap.keys()])
+    )
+  ].sort((a, b) => a - b);
+
+  // PEMERIKSAAN DATA SEMENTARA
+    console.log('Jumlah data paparan:', chartRows.length);
+    console.log('Daftar provinsi grafik:', provinces);
+    console.log('Jumlah kategori frekuensi:', frequencies);
+
+  // Warna berbeda untuk setiap frekuensi.
+  const frequencyColors = [
+    '#27805b', // 1x gempa
+    '#3478c5', // 2x gempa
+    '#e38a2f', // 3x gempa
+    '#9467bd', // 4x gempa
+    '#c94b46', // 5x gempa
+    '#159a9c', // 6x gempa
+    '#7d8795', // 7x gempa
+    '#bd6b9b'  // 8x gempa
+  ];
+
+  // Buat satu dataset untuk setiap frekuensi.
+  const datasets = frequencies.map((frequency, index) => {
+    const color = frequencyColors[index % frequencyColors.length];
+
+    return {
+      label: `${frequency}x Gempa`,
+
+      data: provinces.map(province =>
+        provinceFrequency.get(province)?.get(frequency) || 0
+      ),
+
+      backgroundColor: color,
+      hoverBackgroundColor: color,
+      borderRadius: 4,
+      barThickness: 10,
+      categoryPercentage: 0.75,
+      barPercentage: 0.85
+    };
+  });
+
+  // Atur tinggi grafik berdasarkan jumlah provinsi.
+  const chartHeight = Math.max(
+    300,
+    provinces.length * Math.max(35, frequencies.length * 17) + 80
+  );
+
+  const chartCanvas = $('yearChart');
+  const chartWrapper = chartCanvas.parentElement;
+
+  // Lebar menyesuaikan jumlah provinsi.
+  const provinceChartWidth = Math.max(1100, provinces.length * 55);
+  const provinceChartHeight = 500;
+
+  chartCanvas.width = provinceChartWidth;
+  chartCanvas.height = provinceChartHeight;
+  chartCanvas.style.width = `${provinceChartWidth}px`;
+  chartCanvas.style.height = `${provinceChartHeight}px`;
+
+  chartWrapper.style.width = `${provinceChartWidth}px`;
+  chartWrapper.style.minWidth = `${provinceChartWidth}px`;
+  chartWrapper.style.height = `${provinceChartHeight}px`;
+
+  if (yearChart) yearChart.destroy();
+
+  yearChart = new Chart(chartCanvas, {
+    type: 'bar',
+
+    data: {
+      labels: provinces,
+      datasets: datasets
+    },
+
+    options: {
+      indexAxis: 'x',
+      responsive: false,
+      maintainAspectRatio: false,
+
+      elements: {
+        bar: {
+          borderWidth: 0,
+          hoverBorderWidth: 2,
+          hoverBorderColor: '#453638'
+        }
+      },
+
+      interaction: {
+        mode: 'index',
+        intersect: false,
+        axis: 'x'
+      },
+
+      hover: {
+        mode: 'index',
+        intersect: false,
+        axis: 'x'
+      },
+
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top'
+        },
+
+        tooltip: {
+          filter: function(context) {
+            // Tampilkan hanya frekuensi dengan jumlah di atas 0
+            return context.parsed.y > 0;
+          },
+
+          callbacks: {
+            label: context =>
+              `${context.dataset.label}: ${context.parsed.y} unit jembatan`
+          }
+        }
+      },
+
+      scales: {
+        x: {
+          type: 'category',
+          stacked: false,
+          title: {
+            display: true,
+            text: 'Provinsi'
+          },
+          ticks: {
+            autoSkip: false,
+            minRotation: 45,
+            maxRotation: 60,
+            color: '#475569',
+            font: {
+              size: 10
+            }
+          }
+        },
+
+        y: {
+          beginAtZero: true,
+          stacked: false,
+          title: {
+            display: true,
+            text: 'Jumlah Jembatan'
+          },
+          ticks: {
+            precision: 0
+          }
+        }
+      }
+    }
+  });
+
+  // Ringkasan dan distribusi kondisi jembatan unik.
+  // Mengikuti filter yang sudah diterapkan pada chartRows.
+
+  const conditionByBridge = new Map();
+
+  chartRows.forEach(r => {
+    const bridgeId = String(r.bridgeId ?? '').trim();
+
+    if (!bridgeId) return;
+
+    const rawCondition = String(
+      r.conditions?.JBT ?? ''
+    ).trim();
+
+    const condition = ['0', '1', '2', '3', '4', '5']
+      .includes(rawCondition)
+      ? rawCondition
+      : '';
+
+    // Jika kondisi awal kosong tetapi data berikutnya tersedia,
+    // gunakan nilai kondisi yang diketahui.
+    if (
+      !conditionByBridge.has(bridgeId) ||
+      (!conditionByBridge.get(bridgeId) && condition)
+    ) {
+      conditionByBridge.set(bridgeId, condition);
+    }
+  });
+
+  const totalUnique = conditionByBridge.size;
+
+  const conditionCounts = {
+    '0': 0,
+    '1': 0,
+    '2': 0,
+    '3': 0,
+    '4': 0,
+    '5': 0
+  };
+
+  conditionByBridge.forEach(condition => {
+    if (condition !== '') {
+      conditionCounts[condition]++;
+    }
+  });
+
+  const priorityCount =
+    conditionCounts['3'] +
+    conditionCounts['4'] +
+    conditionCounts['5'];
+
+  const priorityPercent = totalUnique
+    ? (priorityCount / totalUnique) * 100
+    : 0;
+
+  // Tampilkan tiga kartu ringkasan.
+  $('conditionSummary').innerHTML = `
+
+    <div class="condition-summary-card priority">
+      <span class="condition-summary-label">
+        Jembatan NK 3–5
+      </span>
+      <strong class="condition-summary-value">
+        ${fmt(priorityCount)}
+      </strong>
+      <span class="condition-summary-detail">
+        Rusak, kritis, atau runtuh/belum terbangun
+      </span>
+    </div>
+
+    <div class="condition-summary-card priority">
+      <span class="condition-summary-label">
+        Persentase NK 3–5
+      </span>
+      <strong class="condition-summary-value">
+        ${priorityPercent.toLocaleString('id-ID', {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1
+        })}%
+      </strong>
+      <span class="condition-summary-detail">
+        Dari seluruh jembatan unik terpapar
+      </span>
+    </div>
+  `;
+
+  // Nama kondisi dan warna masing-masing NK.
+  const conditionInfo = {
+    '0': {
+      name: 'Baru / Sangat Baik',
+      color: '#66d6ff'
+    },
+    '1': {
+      name: 'Baik',
+      color: '#054deb'
+    },
+    '2': {
+      name: 'Sedang',
+      color: '#2d820c'
+    },
+    '3': {
+      name: 'Rusak',
+      color: '#f58f0a'
+    },
+    '4': {
+      name: 'Kritis',
+      color: '#ff0000'
+    },
+    '5': {
+      name: 'Runtuh / Belum Terbangun',
+      color: '#000000'
+    }
+  };
+
+  const nkLabels = ['0', '1', '2', '3', '4', '5'];
+  
+  // Hitung persentase berdasarkan jembatan
+  // yang memiliki nilai kondisi NK diketahui.
+  const totalKnownCondition = Object.values(conditionCounts)
+    .reduce((sum, count) => sum + count, 0);
+
+  const conditionPercent = nk =>
+    totalKnownCondition
+      ? (conditionCounts[nk] / totalKnownCondition) * 100
+      : 0;
+
+  // Hapus grafik sebelumnya sebelum menggambar ulang.
+  if (mmiChart) {
+    mmiChart.destroy();
+  }
+
+  
+  // Grafik doughnut premium kondisi jembatan NK 0–5.
+  mmiChart = new Chart($('mmiChart'), {
+    type: 'doughnut',
+
+    data: {
+      labels: nkLabels.map(nk =>
+        `NK ${nk} — ${conditionInfo[nk].name}`
+      ),
+
+      datasets: [{
+        label: 'Jumlah Jembatan Unik',
+
+        data: nkLabels.map(nk => conditionCounts[nk]),
+
+        backgroundColor: nkLabels.map(
+          nk => conditionInfo[nk].color
+        ),
+
+        borderColor: '#ffffff',
+        borderWidth: 3,
+        hoverOffset: 7,
+        spacing: 2,
+        borderRadius: 4
+      }]
+    },
+
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+
+      cutout: '68%',
+      radius: '92%',
+
+      animation: {
+        duration: 650,
+        easing: 'easeOutQuart'
+      },
+
+      interaction: {
+        intersect: false
+      },
+
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'circle',
+            boxWidth: 9,
+            boxHeight: 9,
+            padding: 14,
+            color: '#475569',
+
+            font: {
+              size: 11,
+              weight: '500'
+            }
+          }
+        },
+
+        tooltip: {
+          enabled: true,
+          backgroundColor: '#1e293b',
+          titleColor: '#ffffff',
+          bodyColor: '#e2e8f0',
+          padding: 12,
+          cornerRadius: 8,
+          displayColors: true,
+
+          callbacks: {
+            title: context => {
+              const nk = nkLabels[context[0].dataIndex];
+
+              return `NK ${nk} — ${conditionInfo[nk].name}`;
+            },
+
+            label: context => {
+              const nk = nkLabels[context.dataIndex];
+              const jumlah = conditionCounts[nk];
+
+              const percent = conditionPercent(nk)
+                .toLocaleString('id-ID', {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1
+                });
+
+              return [
+                `Jumlah: ${fmt(jumlah)} jembatan`,
+                `Proporsi: ${percent}%`
+              ];
+            }
+          }
+        }
+      }
+    },
+
+    // Teks ringkasan di tengah doughnut.
+    plugins: [{
+      id: 'doughnutCenterTotal',
+
+      afterDraw(chart) {
+        const { ctx, chartArea } = chart;
+
+        if (!chartArea) return;
+
+        const centerX =
+          (chartArea.left + chartArea.right) / 2;
+
+        const centerY =
+          (chartArea.top + chartArea.bottom) / 2;
+
+        const totalText = fmt(totalKnownCondition);
+
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Angka total jembatan.
+        ctx.fillStyle = '#1e293b';
+        ctx.font =
+          `700 ${Math.max(19, Math.min(28, chart.width * 0.075))}px Inter, sans-serif`;
+
+        ctx.fillText(
+          totalText,
+          centerX,
+          centerY - 9
+        );
+
+        // Label penjelas.
+        ctx.fillStyle = '#64748b';
+        ctx.font = '500 10px Inter, sans-serif';
+
+        ctx.fillText(
+          'TERKLASIFIKASI NK',
+          centerX,
+          centerY + 13
+        );
+
+        ctx.restore();
+      }
+    }]
+  });
+
+  // ==========================================
+  // GRAFIK KONDISI JEMBATAN PER PROVINSI
+  // ==========================================
+
+  const provinceConditionBridges = new Map();
+
+  chartRows.forEach(r => {
+    const province = String(
+      r.province ||
+      r.bridgeFeature?.properties?.PROVINSI ||
+      r.bridgeFeature?.properties?.provinsi ||
+      r.bridgeFeature?.properties?.Provinsi ||
+      'Provinsi tidak diketahui'
+    ).trim();
+
+    const bridgeId = String(r.bridgeId ?? '').trim();
+
+    if (!bridgeId) return;
+
+    // Satu jembatan dihitung sekali dalam satu provinsi.
+    const key = JSON.stringify([province, bridgeId]);
+
+    const rawCondition = String(
+      r.conditions?.JBT ?? ''
+    ).trim();
+
+    const condition = ['0', '1', '2', '3', '4', '5']
+      .includes(rawCondition)
+      ? rawCondition
+      : '';
+
+    if (!provinceConditionBridges.has(key)) {
+      provinceConditionBridges.set(key, {
+        province,
+        bridgeId,
+        condition
+      });
+    } else {
+      const existing = provinceConditionBridges.get(key);
+
+      // Gunakan nilai kondisi yang tersedia jika sebelumnya kosong.
+      if (!existing.condition && condition) {
+        existing.condition = condition;
+      }
+    }
+  });
+
+  // Kelompokkan jumlah jembatan per provinsi dan nilai NK.
+  const provinceConditionCounts = new Map();
+
+  provinceConditionBridges.forEach(bridge => {
+    if (!provinceConditionCounts.has(bridge.province)) {
+      provinceConditionCounts.set(
+        bridge.province,
+        { '0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 }
+      );
+    }
+
+    if (bridge.condition !== '') {
+      provinceConditionCounts.get(bridge.province)[
+        bridge.condition
+      ]++;
+    }
+  });
+
+  const conditionProvinces = [
+    ...provinceConditionCounts.keys()
+  ].sort((a, b) => a.localeCompare(b, 'id'));
+
+  const provinceNkColors = {
+    '0': '#66d6ff',
+    '1': '#054deb',
+    '2': '#2d820c',
+    '3': '#f58f0a',
+    '4': '#ff0000',
+    '5': '#000000'
+  };
+
+  const provinceNkNames = {
+    '0': 'NK 0 — Baru / Sangat Baik',
+    '1': 'NK 1 — Baik',
+    '2': 'NK 2 — Sedang',
+    '3': 'NK 3 — Rusak',
+    '4': 'NK 4 — Kritis',
+    '5': 'NK 5 — Runtuh / Belum Terbangun'
+  };
+
+  const provinceConditionDatasets = [
+    '0', '1', '2', '3', '4', '5'
+  ].map(nk => ({
+    label: provinceNkNames[nk],
+
+    data: conditionProvinces.map(province =>
+      provinceConditionCounts.get(province)[nk]
+    ),
+
+    backgroundColor: provinceNkColors[nk],
+    borderRadius: 3,
+    borderSkipped: false
+  }));
+
+  // Sesuaikan tinggi grafik dengan jumlah provinsi.
+  const conditionProvinceChartHeight = Math.max(
+  600,
+  conditionProvinces.length * 30 + 120
+  );
+
+  const provinceChartCanvas = $('conditionProvinceChart');
+
+  provinceChartCanvas.parentElement.style.height =
+  `${conditionProvinceChartHeight}px`;
+
+  // Hapus grafik sebelumnya sebelum menggambar ulang.
+  if (conditionProvinceChart) {
+    conditionProvinceChart.destroy();
+  }
+
+  conditionProvinceChart = new Chart(
+    provinceChartCanvas,
+    {
+      type: 'bar',
+
+      data: {
+        labels: conditionProvinces,
+        datasets: provinceConditionDatasets
+      },
+
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+
+        plugins: {
+          legend: {
+            position: 'bottom'
+          },
+
+          tooltip: {
+            callbacks: {
+              label: context =>
+                `${context.dataset.label}: ${
+                  fmt(context.parsed.x)
+                } jembatan`,
+
+              footer: items => {
+                const total = items.reduce(
+                  (sum, item) => sum + item.parsed.x,
+                  0
+                );
+
+                return `Total kondisi NK diketahui: ${fmt(total)} jembatan`;
+              }
+            }
+          }
+        },
+
+        scales: {
+          x: {
+            stacked: true,
+            beginAtZero: true,
+
+            title: {
+              display: true,
+              text: 'Jumlah Jembatan Unik'
+            },
+
+            ticks: {
+              precision: 0
+            }
+          },
+
+          y: {
+            stacked: true,
+
+            title: {
+              display: true,
+              text: 'Provinsi'
+            }
+          }
+        }
+      }
+    }
+  );
+  
+  const selectedYearForMetric = $('yearFilter').value;
+  const selectedMonthsForMetric =
+    getMultiSelectValues('monthOptions');
+
+  // Filter paparan berdasarkan tahun dan bulan.
+  // Filter MMI tidak digunakan untuk kartu kejadian gempa.
+  const metricRows = exposureRows.filter(r =>
+    (selectedYearForMetric === 'all' ||
+      String(r.year) === selectedYearForMetric) &&
+    (!selectedMonthsForMetric.length ||
+      selectedMonthsForMetric.includes(String(r.month)))
+  );
+
+  // ==========================================
+  // PERINGKAT PROVINSI: JUMLAH JEMBATAN NK 3–5
+  // Mengikuti filter tahun dan bulan, tanpa filter MMI.
+  // Setiap jembatan unik dihitung satu kali per provinsi.
+  // ==========================================
+
+  const priorityProvinceBridges = new Map();
+
+  metricRows.forEach(r => {
+    // Ambil kondisi jembatan.
+    const condition = String(r.conditions?.JBT ?? '').trim();
+
+    // Hanya NK 3, NK 4, dan NK 5.
+    if (!['3', '4', '5'].includes(condition)) return;
+
+    // Ambil ID jembatan.
+    const bridgeId = String(r.bridgeId ?? '').trim();
+
+    // Abaikan data yang tidak memiliki ID jembatan.
+    if (!bridgeId) return;
+
+    // Ambil nama provinsi.
+    const province = String(
+      r.province ||
+      r.bridgeFeature?.properties?.PROVINSI ||
+      r.bridgeFeature?.properties?.provinsi ||
+      r.bridgeFeature?.properties?.Provinsi ||
+      'Provinsi tidak diketahui'
+    ).trim();
+
+    // Siapkan Set agar ID jembatan tidak dihitung berulang.
+    if (!priorityProvinceBridges.has(province)) {
+      priorityProvinceBridges.set(province, new Set());
+    }
+
+    priorityProvinceBridges.get(province).add(bridgeId);
+  });
+
+  // Susun ranking berdasarkan jumlah jembatan unik terbanyak.
+  priorityProvinceRanking = [
+    ...priorityProvinceBridges.entries()
+  ]
+    .map(([province, bridgeIds]) => ({
+      province,
+      totalBridges: bridgeIds.size
+    }))
+    .sort((a, b) =>
+      b.totalBridges - a.totalBridges ||
+      a.province.localeCompare(b.province, 'id')
+    );
+
+  // Jumlah jembatan unik yang terimbas.
+  const allUnique = new Set(
+    metricRows
+      .map(r => String(r.bridgeId ?? '').trim())
+      .filter(id => id !== '')
+  ).size;
+
+  // Total unit jembatan unik yang terimbas.
+  // Mengikuti filter tahun dan bulan, tidak mengikuti filter MMI.
+  const uniqueImpactedBridges = new Set(
+    metricRows
+      .map(r => String(r.bridgeId ?? '').trim())
+      .filter(id => id !== '')
+  );
+
+  $('mExposures').textContent = fmt(
+    uniqueImpactedBridges.size
+  );
+
+  // Jumlah kejadian gempa unik berdasarkan tahun dan bulan.
+  
+  // Hitung kejadian gempa dari data titik,
+  // menggunakan filter tahun dan bulan yang aktif.
+  const filteredQuakesForMetric = quakeFeatures.filter(feature => {
+    const props = feature.properties || {};
+    const year = yearOf(props);
+    const month = monthOf(props);
+
+    const matchYear =
+      selectedYearForMetric === 'all' ||
+      String(year) === selectedYearForMetric;
+
+    const matchMonth =
+      selectedMonthsForMetric.length === 0 ||
+      selectedMonthsForMetric.includes(String(month));
+
+    return matchYear && matchMonth;
+  });
+
+  // Hitung ID gempa unik.
+  const filteredQuakeIds = new Set(
+    filteredQuakesForMetric
+      .map(feature => String(
+        feature.properties?.eq_id ??
+        feature.properties?.OBJECTID ??
+        ''
+      ).trim())
+      .filter(id => id !== '')
+  );
+
+  $('mUnique').textContent = fmt(filteredQuakeIds.size);
+
+  // Pertahankan kartu mQuakes sebagai jumlah semua gempa
+  // yang tersedia di API untuk saat ini.
+  $('mQuakes').textContent = fmt(
+    new Set(
+      quakeFeatures
+        .map(f => String(
+          f.properties?.eq_id ??
+          f.properties?.OBJECTID ??
+          ''
+        ).trim())
+        .filter(id => id !== '')
+    ).size
+  );
+
+    // Tampilkan provinsi dengan jumlah jembatan NK 3–5 terbanyak.
+  $('mPeak').textContent = priorityProvinceRanking.length
+    ? priorityProvinceRanking[0].province
+    : '—';
+
+  $('mPeakSub').textContent = priorityProvinceRanking.length
+    ? fmt(priorityProvinceRanking[0].totalBridges) +
+      ' jembatan tidak mantap · Klik untuk peringkat ↗'
+    : 'Tidak ada jembatan NK 3–5 pada filter aktif';
+
+  // Dropdown tahun sudah diisi oleh fungsi analyze().
+  // Jangan dibuat ulang berdasarkan exposureRows karena
+  // tahun tanpa paparan juga perlu tetap tersedia.
+
+}
+
+const priorityProvinceCard = $('priorityProvinceCard');
+const closePriorityProvinceButton = $(
+  'closePriorityProvinceModal'
+);
+const priorityProvinceModal = $('priorityProvinceModal');
+
+if (priorityProvinceCard) {
+  priorityProvinceCard.addEventListener(
+    'click',
+    openPriorityProvinceModal
+  );
+
+  priorityProvinceCard.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openPriorityProvinceModal();
+    }
+  });
+}
+
+if (closePriorityProvinceButton) {
+  closePriorityProvinceButton.addEventListener(
+    'click',
+    closePriorityProvinceModal
+  );
+}
+
+if (priorityProvinceModal) {
+  priorityProvinceModal.addEventListener('click', event => {
+    if (event.target === priorityProvinceModal) {
+      closePriorityProvinceModal();
+    }
+  });
+}
+
+document.addEventListener('keydown', event => {
+  if (
+    event.key === 'Escape' &&
+    priorityProvinceModal &&
+    !priorityProvinceModal.hidden
+  ) {
+    closePriorityProvinceModal();
+  }
+});
+
+function getBridgeSummary(rows) {
+  const grouped = new Map();
+
+  rows.forEach(r => {
+    const key = JSON.stringify([
+      r.province,
+      r.bridgeId
+    ]);
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        ...r,
+        quakeIds: new Set(),
+        magnitudes: [],
+        mmiValues: new Set()
+      });
+    }
+
+    const item = grouped.get(key);
+
+    if (r.eqId) item.quakeIds.add(String(r.eqId));
+
+    if (
+      r.magnitude !== null &&
+      r.magnitude !== undefined &&
+      r.magnitude !== '' &&
+      Number.isFinite(Number(r.magnitude))
+    ) {
+      item.magnitudes.push(Number(r.magnitude));
+    }
+
+    if (r.mmi) item.mmiValues.add(String(r.mmi));
+  });
+
+  return [...grouped.values()].map(item => ({
+    ...item,
+    frequency: item.quakeIds.size,
+    magnitude: item.magnitudes.length
+      ? Math.max(...item.magnitudes)
+      : null,
+    mmi: [...item.mmiValues].sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true })
+    ).join(', ')
+  }));
+}
+
+let tableSort = {
+  key: 'province',
+  direction: 'asc'
+};
+
+// Menyimpan filter aktif untuk masing-masing kolom tabel.
+const columnFilters = {};
+
+function renderTableAndMap() {
+  const yr = $('yearFilter').value;
+  const selectedMonths = getMultiSelectValues('monthOptions');
+  const selectedMmis = getMultiSelectValues('mmiOptions');
+
+  const rows = exposureRows.filter(r =>
+    (yr === 'all' || String(r.year) === yr) &&
+    (!selectedMonths.length || selectedMonths.includes(String(r.month))) &&
+    (!selectedMmis.length || selectedMmis.includes(String(r.mmi)))
+  );
+
+  // Ringkas agar satu jembatan hanya tampil satu kali.
+  let summaryRows = getBridgeSummary(rows);
+
+  // Terapkan filter dari ikon corong setiap kolom.
+  summaryRows = summaryRows.filter(row => {
+    return Object.entries(columnFilters).every(([key, filter]) => {
+      let value;
+
+      if (row.conditions && key in row.conditions) {
+        value = row.conditions[key];
+      } else {
+        value = row[key];
+      }
+
+      if (
+        value === null ||
+        value === undefined ||
+        String(value).trim() === ''
+      ) {
+        return false;
+      }
+
+      if (filter.value !== undefined) {
+        const actual = String(value).trim().toLocaleLowerCase('id');
+        const expected = String(filter.value).trim().toLocaleLowerCase('id');
+
+        const exactMatchKeys = [
+          'province', 'bridgeStructure', 'mmi',
+          'BA', 'LNT', 'BB', 'DAS', 'OP',
+          'UT', 'GR', 'LB', 'JBT'
+        ];
+
+        if (exactMatchKeys.includes(key)) {
+          return actual === expected;
+        }
+
+        return actual.includes(expected);
+      }
+
+      const number = Number(value);
+
+      if (!Number.isFinite(number)) return false;
+
+      if (
+        filter.min !== '' &&
+        filter.min !== undefined &&
+        number < Number(filter.min)
+      ) {
+        return false;
+      }
+
+      if (
+        filter.max !== '' &&
+        filter.max !== undefined &&
+        number > Number(filter.max)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  });
+
+  // Kode berikutnya tetap dipertahankan.
+
+  // Pengurutan tabel.
+  const sortKey = tableSort.key;
+  const direction = tableSort.direction === 'asc' ? 1 : -1;
+
+  summaryRows.sort((a, b) => {
+    const valueA = a.conditions?.[sortKey] ?? a[sortKey];
+    const valueB = b.conditions?.[sortKey] ?? b[sortKey];
+
+    const numericKeys = [
+      'frequency', 'bridgeLength', 'bridgeWidth',
+      'bridgeYear', 'magnitude',
+      'BA', 'LNT', 'BB', 'DAS', 'OP', 'UT', 'GR', 'LB', 'JBT'
+    ];
+
+    if (numericKeys.includes(sortKey)) {
+      const numA = Number(valueA);
+      const numB = Number(valueB);
+
+      const validA = valueA !== '' && valueA !== null &&
+        valueA !== undefined && Number.isFinite(numA);
+      const validB = valueB !== '' && valueB !== null &&
+        valueB !== undefined && Number.isFinite(numB);
+
+      if (!validA && !validB) return 0;
+      if (!validA) return 1;
+      if (!validB) return -1;
+
+      return (numA - numB) * direction;
+    }
+
+    return String(valueA ?? '').localeCompare(
+      String(valueB ?? ''),
+      'id',
+      { numeric: true, sensitivity: 'base' }
+    ) * direction;
+  });
+
+  $('tableInfo').textContent =
+    `Menampilkan ${fmt(Math.min(summaryRows.length, 1000))} dari ` +
+    `${fmt(summaryRows.length)} jembatan unik sesuai filter.`;
+
+  $('resultsBody').innerHTML = summaryRows
+    .slice(0, 1000)
+    .map(r => `
+      <tr data-bridge-id="${esc(r.bridgeId)}"
+          class="bridge-table-row"
+          title="Klik untuk melihat lokasi jembatan pada peta">
+        <td>${esc(r.province)}</td>
+        <td>${esc(r.bridgeNumber)}</td>
+        <td>${esc(r.bridgeName)}</td>
+        <td style="text-align:center;font-weight:700">
+          ${fmt(r.frequency)}
+        </td>
+        <td>${esc(r.bridgeLength)}</td>
+        <td>${esc(r.bridgeWidth)}</td>
+        <td>${esc(r.bridgeStructure)}</td>
+        <td>${esc(r.bridgeYear)}</td>
+
+        <td>${esc(r.conditions?.BA ?? '—')}</td>
+        <td>${esc(r.conditions?.LNT ?? '—')}</td>
+        <td>${esc(r.conditions?.BB ?? '—')}</td>
+        <td>${esc(r.conditions?.DAS ?? '—')}</td>
+        <td>${esc(r.conditions?.OP ?? '—')}</td>
+        <td>${esc(r.conditions?.UT ?? '—')}</td>
+        <td>${esc(r.conditions?.GR ?? '—')}</td>
+        <td>${esc(r.conditions?.LB ?? '—')}</td>
+        <td>${esc(r.conditions?.JBT ?? '—')}</td>
+
+        <td>${r.magnitude ?? '—'}</td>
+        <td>${esc(r.mmi || '—')}</td>
+      </tr>
+    `).join('') ||
+    '<tr><td colspan="19">Tidak ada jembatan terpapar untuk filter ini.</td></tr>';
+
+  // Perbarui indikator sortir.
+  document.querySelectorAll('.sort-btn').forEach(button => {
+    const key = button.dataset.sort;
+    const label = button.textContent.replace(/[↕↑↓]/g, '').trim();
+
+    if (key === tableSort.key) {
+      button.textContent =
+        `${label} ${tableSort.direction === 'asc' ? '↑' : '↓'}`;
+    } else {
+      button.textContent = `${label} ↕`;
+    }
+  });
+
+  // Bagian peta tetap menggunakan data paparan asli.
+  mapLayers.clearLayers();
+
+  const filteredBridgeIds = new Set(rows.map(r => r.bridgeId));
+
+  const bridgeLayer = L.layerGroup();
+  const otherLayer = L.layerGroup();
+  const quakeLayer = L.layerGroup();
+  const bufferLayer = L.layerGroup();
+  const bridgeMarkersById = new Map();
+
+  // Indeks gempa agar pencarian berdasarkan eq_id lebih cepat.
+  const quakeIndexById = new Map();
+
+  quakeFeatures.forEach(q => {
+    const id = q.properties?.eq_id;
+
+    if (id !== null && id !== undefined && id !== '') {
+      quakeIndexById.set(String(id), q);
+    }
+  });
+
+  bufferFeatures.forEach(f => {
+    if (!f.geometry) return;
+
+    const props = f.properties || {};
+    const linked = quakeIndexById.get(
+      String(props.eq_id ?? '')
+    );
+
+    const y = linked
+      ? yearOf(linked.properties || {})
+      : null;
+
+    const m = linked 
+      ? monthOf(linked.properties || {}) 
+      : null;
+
+    if (yr !== 'all' && String(y) !== yr) return;
+
+    if (
+      selectedMonths.length &&
+      !selectedMonths.includes(String(m))
+    ) return;
+
+    if (
+      selectedMmis.length &&
+      !selectedMmis.includes(String(getMmi(props)))
+    ) return;
+
+    try {
+      L.geoJSON(f, {
+        style: {
+          color: '#5a9fc5',
+          weight: 1,
+          fillColor: '#75b9df',
+          fillOpacity: .14
+        }
+      }).bindPopup(
+        `Buffer gempa<br>ID: ${esc(props.eq_id)}<br>MMI: ${esc(getMmi(props))}`
+      ).addTo(bufferLayer);
+    } catch (e) {}
+  });
+
+  quakeFeatures.forEach(f => {
+    const p = f.properties || {};
+    const y = yearOf(p);
+    const m = monthOf(p);
+
+    if (yr !== 'all' && String(y) !== yr) return;
+    if (
+      selectedMonths.length &&
+      !selectedMonths.includes(String(m))
+    ) return;
+    if (!f.geometry || f.geometry.type !== 'Point') return;
+
+    const [x, ycoord] = f.geometry.coordinates;
+
+    L.circleMarker([ycoord, x], {
+      radius: 5,
+      color: '#a83232',
+      fillColor: '#c94b46',
+      fillOpacity: .9,
+      weight: 1
+    }).bindPopup(
+      `Gempa ${y ?? '—'}<br>${esc(p.eq_desc)}<br>` +
+      `Magnitudo: ${p.magnitude ?? '—'}<br>ID: ${esc(p.eq_id)}`
+    ).addTo(quakeLayer);
+  });
+
+  if (bridgeData) {
+    bridgeData.features.forEach(f => {
+      const p = f.properties || {};
+      const id = featureId(f);
+      const pt = geomPoint(f);
+
+      if (!pt || pt.geometry.type !== 'Point') return;
+
+      const [x, y] = pt.geometry.coordinates;
+
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+      const exposed = filteredBridgeIds.has(id);
+      const target = exposed ? bridgeLayer : otherLayer;
+
+      const marker = L.circleMarker([y, x], {
+        radius: exposed ? 4 : 2,
+        color: exposed ? '#206343' : '#e38a2f',
+        fillColor: exposed ? '#27805b' : '#e38a2f',
+        fillOpacity: exposed ? .9 : .42,
+        weight: exposed ? 1 : .4
+      }).bindPopup(
+        `${esc(p.Nm_Jbt_26 || 'Nama tidak tersedia')}<br>` +
+        `ID: ${esc(id)}<br>` +
+        `Provinsi: ${esc(p.PROVINSI || '—')}<br>` +
+         `Status: ${exposed ? 'Terpapar pada filter ini' : 'Tidak masuk hasil filter'}`,
+            {
+              autoPan: false
+            }
+          ).addTo(target);
+
+      bridgeMarkersById.set(String(id), marker);
+    });
+  }
+
+  [bufferLayer, otherLayer, bridgeLayer, quakeLayer]
+    .forEach(layer => layer.addTo(mapLayers));
+
+  $('resultsBody').querySelectorAll('.bridge-table-row')
+  .forEach(row => {
+    row.addEventListener('click', function () {
+      const bridgeId = this.dataset.bridgeId;
+      const marker = bridgeMarkersById.get(String(bridgeId));
+
+      if (!marker) {
+        console.warn('Marker jembatan tidak ditemukan:', bridgeId);
+        return;
+      }
+
+      map.setView(marker.getLatLng(), 17, {
+        animate: true
+      });
+
+      marker.openPopup();
+    });
+  });
+}
+
+$('resultsBody').addEventListener('click', function (event) {
+  const row = event.target.closest('tr.bridge-table-row');
+
+  if (!row) return;
+
+  const bridgeId = row.dataset.bridgeId;
+  const marker = bridgeMarkersById.get(String(bridgeId));
+
+  if (!marker) {
+    console.warn('Marker jembatan tidak ditemukan:', bridgeId);
+    return;
+  }
+
+  map.setView(marker.getLatLng(), 17, {
+    animate: true
+  });
+
+  marker.openPopup();
+});
+
+async function analyze() {
+  if (!bridgeData) {
+    status('GeoJSON jembatan belum berhasil dimuat.');
+    return;
+  }
+
+  $('runBtn').disabled = true;
+
+  try {
+    
+    if (!quakeFeatures.length) {
+      status('Mengambil data titik gempa...');
+
+      quakeFeatures = await fetchArcGISAll(
+        API_POINT,
+        'titik gempa'
+      );
+    }
+
+    const availableYears = [
+      ...new Set(
+        quakeFeatures
+          .map(feature => yearOf(feature.properties || {}))
+          .filter(year => year !== null)
+      )
+    ].sort((a, b) => b - a);
+
+    const yearSelect = $('yearFilter');
+    const previousYear = yearSelect.value;
+
+    yearSelect.innerHTML =
+      '<option value="all">Semua tahun</option>' +
+      availableYears.map(year =>
+        `<option value="${year}">${year}</option>`
+      ).join('');
+
+    if (
+      availableYears.some(year =>
+        String(year) === previousYear
+      )
+    ) {
+      yearSelect.value = previousYear;
+    } else if (availableYears.length) {
+      yearSelect.value = String(availableYears[0]);
+    }
+
+    await loadSelectedYear();
+
+  } catch (error) {
+    console.error(error);
+    status('Analisis gagal: ' + error.message);
+  } finally {
+    $('runBtn').disabled = false;
+  }
+}
+
+    const BRIDGE_GEOJSON =
+      'Indonesia_2026_Q.geojson';
+
+async function loadBridgeGeoJSON() {
+  const runBtn = document.getElementById('runBtn');
+  runBtn.disabled = true;
+
+  try {
+    status('Memuat GeoJSON jembatan dari folder output...');
+
+    const response = await fetch(BRIDGE_GEOJSON, {
+      cache: 'no-cache'
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `HTTP ${response.status}: ${BRIDGE_GEOJSON}`
+      );
+    }
+
+    const data = await response.json();
+
+    if (
+      data.type !== 'FeatureCollection' ||
+      !Array.isArray(data.features)
+    ) {
+      throw new Error('Format GeoJSON tidak valid.');
+    }
+
+    bridgeData = data;
+
+    status(
+      `GeoJSON berhasil dimuat otomatis.\n` +
+      `Jumlah fitur: ${bridgeData.features.length.toLocaleString('id-ID')}\n` +
+      `Sumber: ${BRIDGE_GEOJSON}\n` +
+      `Klik "Muat API & analisis" untuk melanjutkan.`
+    );
+  } catch (error) {
+    bridgeData = null;
+
+    status(
+      'Gagal memuat GeoJSON otomatis.\n' +
+      error.message +
+      '\nPeriksa lokasi file dan jalankan melalui Live Server.'
+    );
+  } finally {
+    runBtn.disabled = false;
+  }
+}
+
+
+async function loadFilterOptions() {
+  const yearSelect = $('yearFilter');
+  const mmiSelect = $('mmiFilter');
+
+  try {
+    status('Menyiapkan pilihan filter tahun dan MMI...');
+
+    // Ambil data titik gempa untuk menyiapkan daftar tahun.
+    if (!quakeFeatures.length) {
+      quakeFeatures = await fetchArcGISAll(
+        API_POINT,
+        'referensi titik gempa'
+      );
+    }
+
+    const availableYears = [
+      ...new Set(
+        quakeFeatures
+          .map(feature => yearOf(feature.properties || {}))
+          .filter(year => year !== null)
+      )
+    ].sort((a, b) => b - a);
+
+    yearSelect.innerHTML =
+      '<option value="all">Semua tahun</option>' +
+      availableYears.map(year =>
+        `<option value="${year}">${year}</option>`
+      ).join('');
+
+    // Pilih tahun terbaru sebagai pilihan awal.
+    if (availableYears.length) {
+      yearSelect.value = String(availableYears[0]);
+    }
+
+    status(
+      'Pilihan tahun berhasil disiapkan.\n' +
+      'Berikutnya menyiapkan daftar klasifikasi MMI.'
+    );
+
+  } catch (error) {
+    console.error(error);
+    status('Gagal menyiapkan filter: ' + error.message);
+  }
+}
+
+async function loadMmiOptions() {
+  const mmiOptions = $('mmiOptions');
+
+  try {
+    const params = new URLSearchParams({
+      where: 'mmi IS NOT NULL',
+      outFields: 'mmi',
+      returnDistinctValues: 'true',
+      returnGeometry: 'false',
+      orderByFields: 'mmi ASC',
+      f: 'json'
+    });
+
+    const response = await fetch(
+      API_BUFFER + '?' + params.toString()
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || data.error) {
+      throw new Error(
+        JSON.stringify(data.error || 'Gagal mengambil daftar MMI.')
+      );
+    }
+
+    const mmis = [
+      ...new Set(
+        (data.features || [])
+          .map(feature => feature.attributes?.mmi)
+          .filter(value => value !== null && value !== undefined)
+          .map(String)
+      )
+    ].sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true })
+    );
+
+    mmiOptions.innerHTML = `
+      <label>
+        <input type="checkbox" value="all" checked>
+        Semua klasifikasi
+      </label>
+      ${mmis.map(mmi => `
+        <label>
+          <input type="checkbox" value="${esc(mmi)}">
+          MMI ${esc(mmi)}
+        </label>
+      `).join('')}
+    `;
+
+  } catch (error) {
+    console.error('Gagal memuat pilihan MMI:', error);
+    status('Gagal memuat pilihan MMI: ' + error.message);
+  }
+}
+
+document.getElementById('runBtn')
+  .addEventListener('click', analyze);
+
+document.getElementById('yearFilter').addEventListener('change', () => {
+  status('Tahun berubah. Klik "Analisis" untuk memuat data tahun terpilih.');
+});
+
+
+loadBridgeGeoJSON();
+
+(async function initializeFilters() {
+  await loadFilterOptions();
+  await loadMmiOptions();
+})();
+
+async function fetchBuffersByShakeIds(shakeIds) {
+  const uniqueIds = [...new Set(
+    shakeIds
+      .filter(id => id !== null && id !== undefined && id !== '')
+      .map(String)
+  )];
+
+  if (!uniqueIds.length) return [];
+
+  const allBuffers = [];
+  const chunkSize = 40;
+
+  // Pecah ID menjadi beberapa permintaan untuk membatasi URL.
+  for (let i = 0; i < uniqueIds.length; i += chunkSize) {
+    const chunk = uniqueIds.slice(i, i + chunkSize);
+
+    // Escape tanda petik untuk klausa SQL ArcGIS.
+    const idList = chunk
+      .map(id => "'" + id.replace(/'/g, "''") + "'")
+      .join(',');
+
+    const where = `eq_id IN (${idList})`;
+
+    const features = await fetchArcGISWhere(
+      API_BUFFER,
+      where,
+      'buffer gempa'
+    );
+
+    for (const feature of features) {
+      allBuffers.push(feature);
+    }
+  }
+
+  return allBuffers;
+}
+
+async function fetchArcGISWhere(url, where, label) {
+  let all = [];
+  let offset = 0;
+
+  while (true) {
+    const params = new URLSearchParams({
+      where,
+      outFields: '*',
+      returnGeometry: 'true',
+      outSR: '4326',
+      f: 'geojson',
+      resultOffset: String(offset),
+      resultRecordCount: String(PAGE_SIZE)
+    });
+
+    const response = await fetch(url + '?' + params.toString());
+    const body = await response.text();
+
+    let data;
+    try {
+      data = JSON.parse(body);
+    } catch {
+      throw new Error(
+        `${label}: respons bukan JSON. HTTP ${response.status}: ` +
+        body.slice(0, 500)
+      );
+    }
+
+    if (!response.ok || data.error) {
+      throw new Error(
+        `${label}: ` +
+        JSON.stringify(data.error || data).slice(0, 800)
+      );
+    }
+
+    const features = data.features || [];
+    for (const feature of features) {
+      all.push(feature);
+    }
+
+    status(
+      `Mengambil ${label}: ${all.length.toLocaleString('id-ID')} fitur`
+    );
+
+    if (features.length < PAGE_SIZE) break;
+
+    offset += features.length;
+  }
+
+  return all;
+}
+
+
+
+async function calculateExposure(selectedQuakes, selectedBuffers) {
+  status('Menyiapkan indeks gempa dan buffer...');
+
+  // =====================================================
+  // 1. INDEKS GEMPA BERDASARKAN EQ_ID
+  // =====================================================
+  const quakeById = new Map();
+
+  selectedQuakes.forEach(feature => {
+    const props = feature.properties || {};
+    const id = props.eq_id;
+
+    if (id !== null && id !== undefined && id !== '') {
+      quakeById.set(String(id), props);
+    }
+  });
+
+  // =====================================================
+  // 2. INDEKS SPASIAL BUFFER BERBASIS GRID
+  // =====================================================
+  const bufferGrid = new Map();
+  const cellSize = 0.25;
+
+  selectedBuffers.forEach(feature => {
+    const props = feature.properties || {};
+    const id = props.eq_id;
+
+    if (
+      id === null ||
+      id === undefined ||
+      id === '' ||
+      !feature.geometry
+    ) {
+      return;
+    }
+
+    let bbox;
+
+    try {
+      bbox = turf.bbox(feature);
+    } catch (error) {
+      console.warn('Geometri buffer tidak valid:', error);
+      return;
+    }
+
+    if (
+      !bbox.every(Number.isFinite) ||
+      bbox[0] > bbox[2] ||
+      bbox[1] > bbox[3]
+    ) {
+      return;
+    }
+
+    const entry = {
+      feature,
+      bbox,
+      eqId: String(id)
+    };
+
+    const minX = Math.floor(bbox[0] / cellSize);
+    const maxX = Math.floor(bbox[2] / cellSize);
+    const minY = Math.floor(bbox[1] / cellSize);
+    const maxY = Math.floor(bbox[3] / cellSize);
+
+    // Daftarkan buffer pada setiap sel yang dilalui bbox.
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
+        const cellKey = `${x},${y}`;
+
+        if (!bufferGrid.has(cellKey)) {
+          bufferGrid.set(cellKey, []);
+        }
+
+        bufferGrid.get(cellKey).push(entry);
+      }
+    }
+  });
+
+  status(
+    `Indeks spasial siap: ${bufferGrid.size.toLocaleString('id-ID')} sel`
+  );
+
+  // =====================================================
+  // 3. SIAPKAN TITIK JEMBATAN
+  // =====================================================
+  const bridgePoints = [];
+
+  for (const feature of bridgeData.features || []) {
+    const point = geomPoint(feature);
+
+    if (
+      point?.geometry?.type === 'Point' &&
+      point.geometry.coordinates?.length >= 2
+    ) {
+      bridgePoints.push({
+        feature,
+        point,
+        id: featureId(feature)
+      });
+    }
+  }
+
+  // =====================================================
+  // 4. ANALISIS SPASIAL
+  // =====================================================
+  const rows = [];
+  const seen = new Set();
+
+  for (let i = 0; i < bridgePoints.length; i++) {
+    const item = bridgePoints[i];
+    const coords = item.point.geometry.coordinates;
+
+    if (
+      !Number.isFinite(coords[0]) ||
+      !Number.isFinite(coords[1])
+    ) {
+      continue;
+    }
+
+    // Ambil hanya buffer pada sel yang ditempati jembatan.
+    const cellX = Math.floor(coords[0] / cellSize);
+    const cellY = Math.floor(coords[1] / cellSize);
+    const cellKey = `${cellX},${cellY}`;
+
+    const candidates = bufferGrid.get(cellKey) || [];
+
+    for (const candidate of candidates) {
+      const eqId = candidate.eqId;
+      const quake = quakeById.get(eqId);
+
+      if (!quake) continue;
+
+      const year = yearOf(quake);
+      const month = monthOf(quake);
+
+      if (year === null) continue;
+
+      const bbox = candidate.bbox;
+
+      // Saringan awal berdasarkan bounding box.
+      if (
+        coords[0] < bbox[0] ||
+        coords[0] > bbox[2] ||
+        coords[1] < bbox[1] ||
+        coords[1] > bbox[3]
+      ) {
+        continue;
+      }
+
+      const polygon = candidate.feature;
+      let hit = false;
+
+      try {
+        hit = turf.booleanPointInPolygon(
+          item.point,
+          polygon,
+          { ignoreBoundary: false }
+        );
+      } catch (error) {
+        console.warn('Geometri buffer tidak valid:', error);
+      }
+
+      if (!hit) continue;
+
+      const props = item.feature.properties || {};
+      const mmi = getMmi(polygon.properties || {});
+      const key = [item.id, eqId, mmi].join('|');
+
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      rows.push({
+        year,
+        month,
+        bridgeId: item.id,
+        eqId: String(eqId ?? ''),
+
+        province: String(
+          props.PROVINSI ??
+          props.provinsi ??
+          props.Provinsi ??
+          ''
+        ).trim(),
+
+        bridgeNumber: props.No_Jbt_26 ?? '',
+        bridgeName: props.Nm_Jbt_26 ?? '',
+        bridgeLength: props.Pjg_Jbt_26 ?? '',
+        bridgeWidth: props.Lbr_Jbt_26 ?? '',
+        bridgeStructure: props.Bgn_Ats_26 ?? '',
+        bridgeYear: props.Thn_Bgn_26 ?? '',
+
+        conditions: {
+          BA: props.BA_26 ?? '',
+          LNT: props.LNT_26 ?? '',
+          BB: props.BB_26 ?? '',
+          DAS: props.DAS_26 ?? '',
+          OP: props.OP_26 ?? '',
+          UT: props.UT_26 ?? '',
+          GR: props.GR_26 ?? '',
+          LB: props.LB_26 ?? '',
+          JBT: props.JBT_26 ?? ''
+        },
+
+        region: quake.eq_desc ?? '',
+        magnitude: quake.magnitude ?? null,
+        mmi,
+        bridgeFeature: item.feature
+      });
+    }
+
+    // Beri browser kesempatan memperbarui indikator progres.
+    if ((i + 1) % 100 === 0) {
+      status(
+        `Analisis spasial: ${(i + 1).toLocaleString('id-ID')} / ` +
+        `${bridgePoints.length.toLocaleString('id-ID')} jembatan`
+      );
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+  }
+
+  // =====================================================
+  // 5. SIMPAN DAN URUTKAN HASIL ANALISIS
+  // =====================================================
+  exposureRows = rows.sort(
+    (a, b) =>
+      (a.year ?? 0) - (b.year ?? 0) ||
+      String(a.bridgeName).localeCompare(String(b.bridgeName))
+  );
+
+  // =====================================================
+  // 6. PERBARUI GRAFIK, TABEL, DAN PETA
+  // =====================================================
+  renderCharts();
+  renderTableAndMap();
+
+  status(
+    `Analisis selesai.\n` +
+    `Tahun terpilih: ${$('yearFilter').value}\n` +
+    `Titik gempa keseluruhan: ${selectedQuakes.length.toLocaleString('id-ID')}\n` +
+    `Radius gempa terbentuk: ${selectedBuffers.length.toLocaleString('id-ID')}\n` +
+    `Paparan jembatan-kejadian: ${exposureRows.length.toLocaleString('id-ID')}`
+  );
+}
+
+async function loadSelectedYear() {
+  const selectedYear = $('yearFilter').value;
+
+  const selectedQuakes = quakeFeatures.filter(feature => {
+    const year = yearOf(feature.properties || {});
+    return selectedYear === 'all' ||
+      String(year) === selectedYear;
+  });
+
+  const shakeIds = selectedQuakes.map(
+    feature => feature.properties?.eq_id
+  );
+
+  status(
+    `Tahun terpilih: ${selectedYear === 'all' ? 'Semua tahun' : selectedYear}\n` +
+    `Titik gempa terpilih: ${selectedQuakes.length.toLocaleString('id-ID')}\n` +
+    'Mengambil buffer berdasarkan Shake ID...'
+  );
+
+  bufferFeatures = await fetchBuffersByShakeIds(shakeIds);
+
+  // Analisis hanya memakai kejadian dan buffer tahun terpilih.
+  await calculateExposure(selectedQuakes, bufferFeatures);
+}
+document.querySelector('#bridgeTable thead')
+  .addEventListener('click', event => {
+    const button = event.target.closest('.sort-btn');
+
+    if (!button) return;
+
+    const key = button.dataset.sort;
+
+    if (tableSort.key === key) {
+      tableSort.direction =
+        tableSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+      tableSort.key = key;
+      tableSort.direction = 'asc';
+    }
+
+    renderTableAndMap();
+  });
+
+function setupColumnFilters() {
+  const table = $('bridgeTable');
+  if (!table) return;
+
+  const numericKeys = [
+    'frequency',
+    'bridgeLength',
+    'bridgeWidth',
+    'bridgeYear',
+    'magnitude'
+  ];
+
+  const conditionKeys = [
+    'BA', 'LNT', 'BB', 'DAS', 'OP',
+    'UT', 'GR', 'LB', 'JBT'
+  ];
+
+  const textKeys = ['bridgeNumber', 'bridgeName'];
+
+  function filterType(key) {
+    if (textKeys.includes(key)) return 'text';
+    if (numericKeys.includes(key)) return 'range';
+    return 'select';
+  }
+
+  function getValue(row, key) {
+    if (conditionKeys.includes(key)) {
+      return row.conditions?.[key] ?? row[key] ?? '';
+    }
+
+    return row[key] ?? '';
+  }
+
+  function uniqueValues(key) {
+    const summary = getBridgeSummary(exposureRows);
+
+    return [...new Set(
+      summary
+        .map(row => String(getValue(row, key)).trim())
+        .filter(value => value !== '')
+    )].sort((a, b) =>
+      a.localeCompare(b, 'id', {
+        numeric: true,
+        sensitivity: 'base'
+      })
+    );
+  }
+
+  // Satu menu digunakan bergantian oleh semua kolom.
+  let menu = document.getElementById('columnFilterMenu');
+
+  if (!menu) {
+    menu = document.createElement('div');
+    menu.id = 'columnFilterMenu';
+    menu.className = 'column-filter-menu';
+    menu.hidden = true;
+    document.body.appendChild(menu);
+  }
+
+  let activeKey = null;
+  let activeButton = null;
+
+  function closeMenu() {
+    menu.hidden = true;
+    activeKey = null;
+    activeButton = null;
+  }
+
+  function openMenu(key, label, button) {
+    // Klik ikon yang sama akan menutup menu.
+    if (activeKey === key && !menu.hidden) {
+      closeMenu();
+      return;
+    }
+
+    activeKey = key;
+    activeButton = button;
+
+    const type = filterType(key);
+    const current = columnFilters[key] || {};
+
+    let fields = '';
+
+    if (type === 'text') {
+      fields = `
+        <div class="column-filter-field">
+          <label for="columnFilterText">Mengandung teks</label>
+          <input
+            id="columnFilterText"
+            type="text"
+            value="${esc(current.value || '')}"
+            placeholder="Ketik kata kunci..."
+          >
+        </div>
+      `;
+    } else if (type === 'range') {
+      fields = `
+        <div class="column-filter-field">
+          <label for="columnFilterMin">Nilai minimum</label>
+          <input
+            id="columnFilterMin"
+            type="number"
+            step="any"
+            value="${esc(current.min ?? '')}"
+            placeholder="Tidak ada batas minimum"
+          >
+        </div>
+        <div class="column-filter-field">
+          <label for="columnFilterMax">Nilai maksimum</label>
+          <input
+            id="columnFilterMax"
+            type="number"
+            step="any"
+            value="${esc(current.max ?? '')}"
+            placeholder="Tidak ada batas maksimum"
+          >
+        </div>
+      `;
+    } else {
+      const values = uniqueValues(key);
+
+      fields = `
+        <div class="column-filter-field">
+          <label for="columnFilterValue">Pilih nilai</label>
+          <select id="columnFilterValue">
+            <option value="">Semua nilai</option>
+            ${values.map(value => `
+              <option
+                value="${esc(value)}"
+                ${String(current.value ?? '') === value ? 'selected' : ''}
+              >${esc(value)}</option>
+            `).join('')}
+          </select>
+        </div>
+      `;
+    }
+
+    menu.innerHTML = `
+      <h3 class="column-filter-title">
+        Filter: ${esc(label)}
+      </h3>
+
+      ${fields}
+
+      <div class="column-filter-actions">
+        <button type="button" id="clearColumnFilter">
+          Hapus
+        </button>
+        <button
+          type="button"
+          class="apply-filter-btn"
+          id="applyColumnFilter"
+        >
+          Terapkan
+        </button>
+      </div>
+    `;
+
+    const rect = button.getBoundingClientRect();
+
+    menu.hidden = false;
+
+    const menuWidth = menu.offsetWidth;
+    const menuHeight = menu.offsetHeight;
+
+    const left = Math.max(
+      12,
+      Math.min(
+        rect.left,
+        window.innerWidth - menuWidth - 12
+      )
+    );
+
+    const top = rect.bottom + menuHeight + 8 <= window.innerHeight
+      ? rect.bottom + 6
+      : Math.max(12, rect.top - menuHeight - 6);
+
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+  }
+
+  // Tambahkan ikon pada setiap kolom yang mempunyai data-sort.
+  table.querySelectorAll('thead .sort-btn').forEach(sortButton => {
+    const key = sortButton.dataset.sort;
+    if (!key) return;
+
+    const header = sortButton.closest('th');
+    if (!header) return;
+
+    // Mencegah ikon ganda saat inisialisasi dipanggil kembali.
+    if (header.querySelector(
+      `.column-filter-btn[data-filter-key="${key}"]`
+    )) return;
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'column-filter-btn';
+    button.dataset.filterKey = key;
+    button.title = `Filter ${sortButton.textContent.replace(/[↕↑↓]/g, '').trim()}`;
+    button.setAttribute(
+      'aria-label',
+      `Filter ${sortButton.textContent.replace(/[↕↑↓]/g, '').trim()}`
+    );
+    button.setAttribute('aria-expanded', 'false');
+
+    button.innerHTML = `
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M4 5h16l-6.5 7.5v5l-3 1.5v-6.5L4 5z"></path>
+      </svg>
+    `;
+
+    button.addEventListener('click', event => {
+      event.stopPropagation();
+
+      // Perbarui status ikon aktif.
+      table.querySelectorAll('.column-filter-btn')
+        .forEach(item => {
+          item.setAttribute('aria-expanded', 'false');
+        });
+
+      openMenu(
+        key,
+        sortButton.textContent.replace(/[↕↑↓]/g, '').trim(),
+        button
+      );
+
+      button.setAttribute(
+        'aria-expanded',
+        String(!menu.hidden)
+      );
+    });
+
+    sortButton.insertAdjacentElement('afterend', button);
+  });
+
+  // Terapkan filter kolom.
+  menu.addEventListener('click', event => {
+    event.stopPropagation();
+
+    if (event.target.id === 'applyColumnFilter') {
+      if (!activeKey) return;
+
+      const type = filterType(activeKey);
+      let filter = null;
+
+      if (type === 'text') {
+        const value = $('columnFilterText').value.trim();
+
+        if (value) filter = { value };
+      } else if (type === 'range') {
+        const min = $('columnFilterMin').value;
+        const max = $('columnFilterMax').value;
+
+        if (min !== '' || max !== '') {
+          filter = { min, max };
+        }
+      } else {
+        const value = $('columnFilterValue').value;
+
+        if (value !== '') filter = { value };
+      }
+
+      if (filter) {
+        columnFilters[activeKey] = filter;
+      } else {
+        delete columnFilters[activeKey];
+      }
+
+      closeMenu();
+      renderTableAndMap();
+      return;
+    }
+
+    if (event.target.id === 'clearColumnFilter') {
+      if (activeKey) {
+        delete columnFilters[activeKey];
+      }
+
+      closeMenu();
+      renderTableAndMap();
+    }
+  });
+
+  // Tutup menu saat pengguna mengeklik di luar menu dan ikon.
+  document.addEventListener('click', event => {
+    if (
+      !menu.hidden &&
+      !menu.contains(event.target) &&
+      !event.target.closest('.column-filter-btn')
+    ) {
+      closeMenu();
+    }
+  });
+
+  // Perbarui warna ikon sesuai filter yang aktif.
+  const updateFilterIcons = () => {
+    table.querySelectorAll('.column-filter-btn').forEach(button => {
+      const active = Boolean(columnFilters[button.dataset.filterKey]);
+
+      button.classList.toggle('active', active);
+      button.setAttribute(
+        'aria-pressed',
+        String(active)
+      );
+    });
+  };
+
+  // Perbarui ikon setelah setiap render tabel.
+  const originalRender = renderTableAndMap;
+
+  if (!originalRender.__columnFilterWrapped) {
+    const wrappedRender = function (...args) {
+      originalRender.apply(this, args);
+      updateFilterIcons();
+    };
+
+    wrappedRender.__columnFilterWrapped = true;
+
+    renderTableAndMap = wrappedRender;
+  }
+
+  updateFilterIcons();
+}
+
+setupColumnFilters();
+
+
+function openQuakeModal() {
+  const modal = document.getElementById('quakeModal');
+
+  if (!modal) return;
+
+  renderQuakeModalDetails();
+
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+
+  document.getElementById('closeQuakeModal')?.focus();
+}
+
+function closeQuakeModal() {
+  const modal = document.getElementById('quakeModal');
+
+  if (!modal) return;
+
+  modal.hidden = true;
+  document.body.style.overflow = '';
+
+  document.getElementById('quakeMetricCard')?.focus();
+}
+
+let quakeSortKey = 'date';
+let quakeSortDirection = 'desc';
+
+// Klik kartu KPI untuk membuka modal.
+document
+  .getElementById('quakeMetricCard')
+  ?.addEventListener('click', openQuakeModal);
+
+// Tutup melalui tombol X.
+document
+  .getElementById('closeQuakeModal')
+  ?.addEventListener('click', closeQuakeModal);
+
+// Tutup jika area gelap di luar modal diklik.
+document
+  .getElementById('quakeModal')
+  ?.addEventListener('click', function (event) {
+    if (event.target === this) {
+      closeQuakeModal();
+    }
+  });
+
+// Tutup dengan tombol Escape.
+document.addEventListener('keydown', function (event) {
+  if (
+    event.key === 'Escape' &&
+    !document.getElementById('quakeModal')?.hidden
+  ) {
+    closeQuakeModal();
+  }
+});
+
+function renderQuakeModalDetails() {
+  const content = document.getElementById('quakeModalContent');
+  const subtitle = document.getElementById('quakeModalSubtitle');
+
+  if (!content) return;
+
+  const selectedYear = $('yearFilter').value;
+  const selectedMonths = getMultiSelectValues('monthOptions');
+
+  // Ambil seluruh kejadian dari data titik gempa.
+  const filteredQuakes = quakeFeatures.filter(feature => {
+    const props = feature.properties || {};
+
+    const year = yearOf(props);
+    const month = monthOf(props);
+
+    const matchYear =
+      selectedYear === 'all' ||
+      String(year) === selectedYear;
+
+    const matchMonth =
+      selectedMonths.length === 0 ||
+      selectedMonths.includes(String(month));
+
+    return matchYear && matchMonth;
+  });
+
+  // Hilangkan ID kosong dan pastikan setiap gempa hanya tampil sekali.
+  const uniqueQuakes = new Map();
+
+  filteredQuakes.forEach(feature => {
+    const props = feature.properties || {};
+
+    const id = String(
+      props.eq_id ?? props.OBJECTID ?? ''
+    ).trim();
+
+    if (id && !uniqueQuakes.has(id)) {
+      uniqueQuakes.set(id, feature);
+    }
+  });
+
+  const quakes = [...uniqueQuakes.values()];
+
+  // Fungsi untuk mengambil nilai kolom yang akan diurutkan.
+  function getQuakeSortValue(feature) {
+    const props = feature.properties || {};
+
+    switch (quakeSortKey) {
+      case 'id':
+        return String(
+          props.eq_id ?? props.OBJECTID ?? ''
+        ).trim();
+
+      case 'date': {
+        const rawDate = props.ed_date;
+
+        if (rawDate === null || rawDate === undefined || rawDate === '') {
+          return NaN;
+        }
+
+        const timestamp = new Date(rawDate).getTime();
+        return Number.isNaN(timestamp) ? NaN : timestamp;
+      }
+
+      case 'magnitude': {
+        const value = Number(props.magnitude);
+        return props.magnitude === null ||
+          props.magnitude === undefined ||
+          props.magnitude === '' ||
+          !Number.isFinite(value)
+          ? NaN
+          : value;
+      }
+
+      case 'location':
+        return String(props.eq_desc ?? '').trim();
+
+      default:
+        return '';
+    }
+  }
+
+  // Urutkan data sesuai kolom dan arah yang dipilih.
+  quakes.sort((a, b) => {
+    const valueA = getQuakeSortValue(a);
+    const valueB = getQuakeSortValue(b);
+
+    // Nilai kosong selalu diletakkan di bagian bawah.
+    const emptyA = valueA === '' || Number.isNaN(valueA);
+    const emptyB = valueB === '' || Number.isNaN(valueB);
+
+    if (emptyA && emptyB) return 0;
+    if (emptyA) return 1;
+    if (emptyB) return -1;
+
+    let result;
+
+    if (typeof valueA === 'number' && typeof valueB === 'number') {
+      result = valueA - valueB;
+    } else {
+      result = String(valueA).localeCompare(
+        String(valueB),
+        'id',
+        { numeric: true, sensitivity: 'base' }
+      );
+    }
+
+    return quakeSortDirection === 'asc' ? result : -result;
+  });
+
+  // Perbarui keterangan periode.
+  const yearLabel =
+    selectedYear === 'all' ? 'Semua tahun' : selectedYear;
+
+  const monthNames = [
+    '',
+    'Januari', 'Februari', 'Maret', 'April',
+    'Mei', 'Juni', 'Juli', 'Agustus',
+    'September', 'Oktober', 'November', 'Desember'
+  ];
+
+  const monthLabel = selectedMonths.length
+    ? selectedMonths
+        .map(m => monthNames[Number(m)] || m)
+        .join(', ')
+    : 'Semua bulan';
+
+  if (subtitle) {
+    subtitle.textContent =
+      `${yearLabel} · ${monthLabel} · ${fmt(quakes.length)} kejadian`;
+  }
+
+  if (!quakes.length) {
+    content.innerHTML = `
+      <p class="quake-empty">
+        Tidak ada kejadian gempa pada periode yang dipilih.
+      </p>
+    `;
+    return;
+  }
+
+  // Format tanggal dari atribut tanggal gempa.
+  function formatDate(props) {
+    const rawDate = props.ed_date;
+
+    if (rawDate === null || rawDate === undefined || rawDate === '') {
+      return '—';
+    }
+
+    const date = typeof rawDate === 'number'
+      ? new Date(rawDate)
+      : new Date(rawDate);
+
+    if (Number.isNaN(date.getTime())) {
+      return String(rawDate);
+    }
+
+    return date.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'Asia/Jakarta'
+    });
+  }
+
+  // Amankan teks atribut sebelum dimasukkan ke HTML.
+  function escapeHTML(value) {
+    return String(value ?? '—').replace(/[&<>"']/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[char]);
+  }
+
+  const rows = quakes.map(feature => {
+    const props = feature.properties || {};
+
+    const id = props.eq_id ?? props.OBJECTID ?? '—';
+    const date = formatDate(props);
+    const magnitude = props.magnitude ?? '—';
+    const location = props.eq_desc ?? '—';
+
+    return `
+      <tr>
+        <td>${escapeHTML(id)}</td>
+        <td>${escapeHTML(date)}</td>
+        <td>${escapeHTML(magnitude)}</td>
+        <td>${escapeHTML(location)}</td>
+      </tr>
+    `;
+  }).join('');
+
+  content.innerHTML = `
+    <div class="quake-table-wrap">
+      <table class="quake-table">
+          <thead>
+            <tr>
+              <th>
+                <button type="button" class="quake-sort-btn" data-sort="id">
+                  ID Gempa <span class="sort-indicator">↕</span>
+                </button>
+              </th>
+              <th>
+                <button type="button" class="quake-sort-btn" data-sort="date">
+                  Tanggal <span class="sort-indicator">↕</span>
+                </button>
+              </th>
+              <th>
+                <button type="button" class="quake-sort-btn" data-sort="magnitude">
+                  Magnitudo <span class="sort-indicator">↕</span>
+                </button>
+              </th>
+              <th>
+                <button type="button" class="quake-sort-btn" data-sort="location">
+                  Lokasi / Keterangan <span class="sort-indicator">↕</span>
+                </button>
+              </th>
+            </tr>
+          </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+
+  // Perbarui indikator arah sort.
+  content.querySelectorAll('.quake-sort-btn').forEach(button => {
+    const key = button.dataset.sort;
+    const indicator = button.querySelector('.sort-indicator');
+
+    if (!indicator) return;
+
+    if (key === quakeSortKey) {
+      indicator.textContent =
+        quakeSortDirection === 'asc' ? '↑' : '↓';
+    } else {
+      indicator.textContent = '↕';
+    }
+  });
+
+  // Pasang event klik pada setiap judul kolom.
+  content.querySelectorAll('.quake-sort-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const key = button.dataset.sort;
+
+      if (quakeSortKey === key) {
+        // Kolom yang sama: balik arah pengurutan.
+        quakeSortDirection =
+          quakeSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        // Kolom baru: mulai dari urutan naik.
+        quakeSortKey = key;
+        quakeSortDirection = 'asc';
+      }
+
+      // Render ulang tabel dengan urutan baru.
+      renderQuakeModalDetails();
+    });
+  });
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
+
+function openPriorityProvinceModal() {
+  const modal = $('priorityProvinceModal');
+  const content = $('priorityProvinceModalContent');
+  const subtitle = $('priorityProvinceModalSubtitle');
+
+  if (!modal || !content || !subtitle) return;
+
+  if (!priorityProvinceRanking.length) {
+    content.innerHTML = `
+      <tr>
+        <td colspan="3">
+          Tidak ada paparan NK 3–5 pada filter aktif.
+        </td>
+      </tr>
+    `;
+
+    subtitle.textContent =
+      'Tidak ditemukan provinsi yang memenuhi kriteria.';
+  } else {
+      content.innerHTML = priorityProvinceRanking
+      .map((item, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(item.province)}</td>
+          <td>${fmt(item.totalBridges)}</td>
+        </tr>
+      `)
+      .join('');
+
+    subtitle.textContent =
+      `Total ${fmt(priorityProvinceRanking.length)} provinsi · ` +
+      'Mengikuti filter tahun dan bulan aktif';
+  }
+
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+
+  $('closePriorityProvinceModal')?.focus();
+}
+
+function closePriorityProvinceModal() {
+  const modal = $('priorityProvinceModal');
+
+  if (!modal) return;
+
+  modal.hidden = true;
+  document.body.style.overflow = '';
+}
+
+</script>
+</body></html>
